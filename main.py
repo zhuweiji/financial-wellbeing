@@ -1,5 +1,6 @@
 import base64
 import logging
+from pathlib import Path
 import pickle
 from typing import List, Union
 
@@ -25,7 +26,9 @@ AGE_GROUPS = ('Total',
  '60 - 64',
  '65 & Over')
 
-with open(r'D:\projects\in-progress\financial-wellbeing\singstat-avg-household-exp.pickle', 'rb') as f:
+cwd = Path(__file__).parent
+
+with open(cwd / 'singstat-avg-household-exp.pickle', 'rb') as f:
     data = pickle.load(f)
 
 data = [i for i in data if 'total' not in i.name.lower() ]
