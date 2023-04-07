@@ -4,10 +4,11 @@ from pathlib import Path
 import pickle
 from typing import List, Union
 
-import numpy as np
 import pandas as pd
 import streamlit as st
 from st_aggrid import AgGrid, DataReturnMode, GridOptionsBuilder, GridUpdateMode
+import altair as alt
+
 
 from Categories import Category
 
@@ -26,10 +27,42 @@ AGE_GROUPS = ('Total',
  '60 - 64',
  '65 & Over')
 
+INCOME_LEVEL_TO_QTILES = {
+  'Below 500'    :  0,
+  '500 - 999'    :  0,
+  '1,000 - 1,499':  1,
+  '1,500 - 1,999':   1,
+  '2,000 - 2,499':   2,
+  '2,500 - 2,999':   2,
+  '3,000 - 3,499':   2,
+  '3,500 - 3,999':   3,
+  '4,000 - 4,499':   3,
+  '4,500 - 4,999':   3,
+  '5,000 - 5,499':   3,
+  '5,500 - 5,999':   4,
+  '6,000 - 6,999':   4,
+  '7,000 - 7,999':   4,
+  '8,000 - 8,999':   4,
+  '9,000 & Over ':   4,
+}
+
 cwd = Path(__file__).parent
 
-with open(cwd / 'singstat-avg-household-exp.pickle', 'rb') as f:
-    data = pickle.load(f)
+
+@st.cache_resource
+def load_data():
+    def remove_rows_that_are_totals(df): return df[df['Type of Goods and Services'].map(lambda x: 'total' not in x.lower())]
+    bynum    = remove_rows_that_are_totals(pd.read_excel('per-household-member-bynum.xlsx'))
+    byhouse  = remove_rows_that_are_totals(pd.read_excel('per-household-member-bydwelling.xlsx'))
+    byincome = remove_rows_that_are_totals(pd.read_excel('per-household-member-byincome.xlsx'))
+    
+    with open(cwd / 'singstat-avg-household-exp.pickle', 'rb') as f:
+        data = pickle.load(f)
+    
+    return bynum,byhouse,byincome,data
+
+bynum,byhouse,byincome,data = load_data()
+
 
 data = [i for i in data if 'total' not in i.name.lower() ]
 
@@ -45,8 +78,6 @@ def get_new_unique_st_id():
     unique_id_count+=1
     return unique_id_count
 
-# col1, col2 = st.columns(2)
-
 def create_category_grid(df: pd.DataFrame, selected_age_group: str, container_is_parent=False):
     def get_category_selected(grid_response) -> Union[str,None]: 
         if grid_response.selected_rows: return grid_response.selected_rows[0]['Category'] 
@@ -58,7 +89,7 @@ def create_category_grid(df: pd.DataFrame, selected_age_group: str, container_is
     
     if st.checkbox(f'Show Plot for {plot_name}', value=True):
         st.bar_chart(df, x='Category',y='Amount')
-    
+
     gb = GridOptionsBuilder.from_dataframe(df)
     
     gb.configure_pagination(paginationAutoPageSize=True) #Add pagination
@@ -100,8 +131,67 @@ def build_category_df__from_categories(catogories: List[Category], age):
     d = sorted(d, key=lambda x:x['Amount'], reverse=True)
     return pd.DataFrame(d)
 
+def move_column_to_front(df, col_name, index:int):
+    col = df.pop(col_name)
+    df.insert(index, col_name, col)
+    return df
+
+def select_house_type():
+    selected_house_type = st.selectbox('Your House', options=byhouse.columns[1:])
+    df = pd.concat([byhouse['Type of Goods and Services'], byhouse[selected_house_type]], axis=1)
+    df = df.rename({df.columns[1]: 'Amount'},axis=1 )
+    return df,selected_house_type
+    
+
+def select_num_household():
+    selected_household_size = st.select_slider('Number of people in your household', options=bynum.columns[1:], value=None)
+    df = pd.concat([byincome['Type of Goods and Services'], bynum[selected_household_size]], axis=1)
+    df = df.rename({df.columns[1]: 'Amount'},axis=1 )
+    return df,selected_household_size
+    
+
+def select_income():
+    def get_data_by_income(qtile:int):
+        df = pd.concat([byincome['Type of Goods and Services'], byincome.iloc[:, 2:].iloc[:, qtile]], axis=1)
+        return df.rename({df.columns[1]: 'Amount'},axis=1 )
+        
+    selected_income = st.selectbox('Your Individual Income Level', options=INCOME_LEVEL_TO_QTILES.keys())
+    qtile = INCOME_LEVEL_TO_QTILES[selected_income]
+    df = get_data_by_income(qtile)
+    return df, selected_income
+
+
 
 def main():
+    expenditure_by_income,     selected_income         = select_income()
+    expenditure_by_num_family, selected_household_size = select_num_household()
+    expenditure_by_dwelling,   selected_house_type     = select_house_type()
+    
+    expenditure_by_income['Amount based on Income Quartile']     = expenditure_by_income['Amount']
+    expenditure_by_income = expenditure_by_income.drop('Amount', axis=1)
+    
+    expenditure_by_num_family['Amount based Household Size']     = expenditure_by_num_family['Amount']
+    expenditure_by_num_family = expenditure_by_num_family.drop('Amount', axis=1)
+    expenditure_by_num_family = expenditure_by_num_family.drop('Type of Goods and Services', axis=1)
+    
+    expenditure_by_dwelling['Amount based on Dwelling Type']     = expenditure_by_dwelling['Amount']
+    expenditure_by_dwelling = expenditure_by_dwelling.drop('Amount', axis=1)
+    expenditure_by_dwelling = expenditure_by_dwelling.drop('Type of Goods and Services', axis=1)
+    
+    
+    t_df = pd.concat([expenditure_by_income, expenditure_by_num_family, expenditure_by_dwelling],axis=1)
+    t_df['Estimated Amount'] = t_df.iloc[:, 1:].mean(axis=1)
+    t_df['Estimated Amount'] = t_df['Estimated Amount'].round(2)
+    t_df = move_column_to_front(t_df, 'Estimated Amount', 1)
+    st.dataframe(data=t_df)
+    
+    col1, col2 = st.columns(2)
+    estimated_individual_spend = t_df['Estimated Amount'].sum()
+    with col1:
+        st.metric(label="Total", value=f"${estimated_individual_spend:.2f}") # show sum of above table
+    with col2:
+        st.metric(label="Household Total", value=f"${estimated_individual_spend * int(selected_household_size):.2f}") # show sum of above table
+    
     # st.header('Average Monthly Household Expenditure Among Resident Households', anchor=None, help=None)
     st.subheader('Average Monthly Household Expenditure Among Resident Households', anchor=None, help='')
 
