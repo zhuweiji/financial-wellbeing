@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "financial-wellbeing"
+version = "0.1.0"
+description = ""
+authors = ["Zhu Weiji <zhuweiji1997@gmail.com>"]
+readme = "README.md"
+packages = [{include = "financial_wellbeing"}]
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.9.7 || >3.9.7,<4.0"
+streamlit = "^1.21.0"
+streamlit-aggrid = "^0.3.4.post3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
