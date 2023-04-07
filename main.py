@@ -178,19 +178,28 @@ def main():
     expenditure_by_dwelling = expenditure_by_dwelling.drop('Amount', axis=1)
     expenditure_by_dwelling = expenditure_by_dwelling.drop('Type of Goods and Services', axis=1)
     
+    try:
+        selected_household_size = int(selected_household_size)
+    except ValueError:
+        selected_household_size = 3
     
     t_df = pd.concat([expenditure_by_income, expenditure_by_num_family, expenditure_by_dwelling],axis=1)
     t_df['Estimated Amount'] = t_df.iloc[:, 1:].mean(axis=1)
     t_df['Estimated Amount'] = t_df['Estimated Amount'].round(2)
     t_df = move_column_to_front(t_df, 'Estimated Amount', 1)
-    st.dataframe(data=t_df)
+    
+    show_underlying_data = st.checkbox('Show Underlying Data', value=False)
+    displayed_df = t_df
+    if not show_underlying_data:
+        displayed_df = displayed_df.iloc[:,:2]
+    displayed_df = st.experimental_data_editor(data=displayed_df)
     
     col1, col2 = st.columns(2)
     estimated_individual_spend = t_df['Estimated Amount'].sum()
     with col1:
         st.metric(label="Total", value=f"${estimated_individual_spend:.2f}") # show sum of above table
     with col2:
-        st.metric(label="Household Total", value=f"${estimated_individual_spend * int(selected_household_size):.2f}") # show sum of above table
+        st.metric(label="Household Total", value=f"${estimated_individual_spend * selected_household_size:.2f}") # show sum of above table
     
     # st.header('Average Monthly Household Expenditure Among Resident Households', anchor=None, help=None)
     st.subheader('Average Monthly Household Expenditure Among Resident Households', anchor=None, help='')
