@@ -303,7 +303,7 @@ Discover how your individual income level, the number of people in your househol
 
 Our Personal Expenditure tool estimates the average amount spent on various goods and services like food, clothing, and housing, tailored to your unique situation.
 
-Additionally, it provides forecasts of your expenditure over the next 10, 20, and 30 years, giving you a clear understanding of how your spending patterns may change over time.
+Additionally, it provides forecasts of your expenditure over the next 5, 10, and 20 years, giving you a clear understanding of how your spending patterns may change over time.
 
 ---
 
