@@ -155,7 +155,7 @@ def create_category_grid(df: pd.DataFrame, selected_age_group: str, container_is
 
 
 def build_category_df__from_categories(catogories: List[Category], age):
-    d = [{'Category':i.name, 'Amount': i.get_age_group(age), 'Has Children': 'Yes' if bool(i.subcategories) else 'No'} for i in catogories]
+    d = [{'Category':i.name, 'Amount': i.get_age_group(age), 'More details': 'Yes' if bool(i.subcategories) else 'No'} for i in catogories]
     d = sorted(d, key=lambda x:x['Amount'], reverse=True)
     return pd.DataFrame(d)
 
@@ -180,7 +180,7 @@ def IndividualExpenditurePage():
             df = pd.concat([byincome['Type of Goods and Services'], byincome.iloc[:, 2:].iloc[:, qtile]], axis=1)
             return df.rename({df.columns[1]: 'Amount'},axis=1 )
         
-        selected_income = container.selectbox('Your Individual Income Level', options=INCOME_LEVEL_TO_QTILES.keys(), index=4)
+        selected_income = container.selectbox('Your Individual Income Level (after CPF)', options=INCOME_LEVEL_TO_QTILES.keys(), index=4)
         qtile = INCOME_LEVEL_TO_QTILES[selected_income]
         df = get_data_by_income(qtile)
         return df, selected_income
@@ -195,6 +195,20 @@ def IndividualExpenditurePage():
         selected_age_grp = container.selectbox('Your Age Group', options=AGE_GROUPS, index=2)
         return selected_age_grp
 
+    container.header('Estimated Individual/Household Spend')
+    container.markdown("""
+Discover personalized spending estimates and forecasts tailored to your unique financial situation.
+""")
+    container.markdown('<br/>', unsafe_allow_html=True)
+    
+    container.markdown("""
+Input your individual income level, the number of people in your household, and your type of residence to get an accurate projection of your spending habits across various categories.
+
+This information empowers you to make informed financial decisions and plan for the future with confidence.""")
+    
+    container.divider()
+    container.markdown('<br/>', unsafe_allow_html=True)
+    container.markdown('<br/>', unsafe_allow_html=True)
 
 
     expenditure_by_income,     selected_income         = select_income()
@@ -241,6 +255,10 @@ def IndividualExpenditurePage():
     container.markdown('<br/>', unsafe_allow_html=True)
     container.markdown('<br/>', unsafe_allow_html=True)
     col0, col1, col2 = st.columns(3)
+    
+    container.header('Estimated Individual/Household Spend')
+    container.markdown('<br/>', unsafe_allow_html=True)
+    container.divider()
     
     with col0:
         st.subheader('Current')
@@ -319,28 +337,7 @@ Start your financial planning journey today with {APP_NAME} and gain valuable in
     
     return container
 
-# class SelectablePage:
-#     created_pages = set()
-    
-#     def __init__(self, name, selected: bool = False) -> None:
-#         self.name = name
-#         self._selected = selected
-#         self.created_pages.add(self)
-        
-#     @property
-#     def selected(self):
-#         return self._selected
-    
-#     @selected.setter
-#     def selected(self, value):
-#         self._selected = value
-#         if value == True:
-#             [i.selected(False) for i in self.created_pages]
-            
-#     @classmethod
-#     def get_by_name(cls, name):
-#         return next(iter([i for i in cls.created_pages if i.name == name]), None)
-        
+
 
 def main():
     
@@ -393,7 +390,10 @@ def main():
         IndividualExpenditurePage()
     
     elif HOUSEHOLD_PAGE_Selected:
-        # st.header('Average Monthly Household Expenditure Among Resident Households', anchor=None, help=None)
+        st.header('Explore Household Expenditure by Category')
+        st.write("Delve into what goes into the typical Singaporean household's expenditure.")
+        # st.write("Delve into the average monthly spending habits of Singaporean households using our informative graph, which showcases the connection between the age group of the primary income earner and the overall household expenses.")
+        st.write("Our detailed breakdown of expenditure categories dives into three levels of depth (e.g., Misc -> Insurance -> Health insurance) to give you a better understanding of the intricacies of household spending patterns in Singapore.")
         st.subheader('Average Monthly Household Expenditure Among Resident Households', anchor=None, help='')
 
         # the lines for if age_grp == 'Average': age_grp = 'Total' is because the data is stored in a pickle file and we want to rename the Total Column to Average but did not recreate the pickle file
@@ -419,8 +419,6 @@ def main():
             
             df = build_category_df__from_categories(catogories,selected_age_group)
             create_category_grid(df,selected_age_group, container_is_parent=True)
-    
-
-    
+        
 
 main()
