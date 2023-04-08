@@ -123,6 +123,7 @@ def create_category_grid(df: pd.DataFrame, selected_age_group: str, container_is
     gb.configure_side_bar() #Add a sidebar
     gb.configure_selection()
     gridOptions = gb.build()
+    
     grid_response = AgGrid(
         df,
         gridOptions=gridOptions,
@@ -134,6 +135,8 @@ def create_category_grid(df: pd.DataFrame, selected_age_group: str, container_is
         width='50%',
         reload_data=True
     )
+    if df['More details'].map(lambda i: i=='Yes').any():
+        st.caption('Some categories in the table may contain subcategories. You may further expand these categories by clicking on them.')
     
     st.metric(label="Total", value=f"${df['Amount'].sum():.2f}") # show sum of above table
 
@@ -250,7 +253,11 @@ This information empowers you to make informed financial decisions and plan for 
         displayed_df = displayed_df.iloc[:,:2]
     displayed_df = container.experimental_data_editor(data=displayed_df)
     
-    estimated_individual_spend = t_df['Estimated Amount'].sum()
+    container.caption('You can change any of the amounts in the table to reflect your actual spending, and the totals will be updated.')
+    container.caption('For example, if you spent 300 on food last month.')
+    
+    
+    estimated_individual_spend = displayed_df['Estimated Amount'].sum()
     
     container.markdown('<br/>', unsafe_allow_html=True)
     container.markdown('<br/>', unsafe_allow_html=True)
@@ -394,7 +401,8 @@ def main():
         st.write("Delve into what goes into the typical Singaporean household's expenditure.")
         # st.write("Delve into the average monthly spending habits of Singaporean households using our informative graph, which showcases the connection between the age group of the primary income earner and the overall household expenses.")
         st.write("Our detailed breakdown of expenditure categories dives into three levels of depth (e.g., Misc -> Insurance -> Health insurance) to give you a better understanding of the intricacies of household spending patterns in Singapore.")
-        st.subheader('Average Monthly Household Expenditure Among Resident Households', anchor=None, help='')
+        st.markdown('<br/>', unsafe_allow_html=True)
+        st.markdown('<br/>', unsafe_allow_html=True)
 
         # the lines for if age_grp == 'Average': age_grp = 'Total' is because the data is stored in a pickle file and we want to rename the Total Column to Average but did not recreate the pickle file
         
@@ -409,9 +417,12 @@ def main():
             
         spending_by_age_df = pd.DataFrame(spending_by_age_df)
         
+        st.subheader('Average Monthly Household Expenditure Among Resident Households', anchor=None, help='')
+        st.caption('This chart shows the average monthly expenditure by households for different ages of the main breadwinner.')
         st.line_chart(spending_by_age_df, x='Age Group', y='Total Amount')
         
-        if st.checkbox('Expenditure by Category'):
+        if st.checkbox('View Expenditure by Category'):
+            st.caption('Delve into the different categories that make up the total household expenditure')
             
             selected_age_group: str = st.selectbox('Age Group of Main Income Earner', AGE_GROUPS)  # type: ignore
             catogories = find_by_level(0)
