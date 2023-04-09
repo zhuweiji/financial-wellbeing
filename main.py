@@ -214,13 +214,13 @@ This information empowers you to make informed financial decisions and plan for 
     container.markdown('<br/>', unsafe_allow_html=True)
 
 
+    selected_age_grp                                   = select_age_grp()
+    container.markdown('<br>', unsafe_allow_html=True)
     expenditure_by_income,     selected_income         = select_income()
     container.markdown('<br>', unsafe_allow_html=True)
     expenditure_by_num_family, selected_household_size = select_num_household()
     container.markdown('<br>', unsafe_allow_html=True)
     expenditure_by_dwelling,   selected_house_type     = select_house_type()
-    container.markdown('<br>', unsafe_allow_html=True)
-    selected_age_grp                                   = select_age_grp()
     container.markdown('<br/>', unsafe_allow_html=True)
     container.markdown('<br/>', unsafe_allow_html=True)
     container.markdown('<br/>', unsafe_allow_html=True)
@@ -229,7 +229,7 @@ This information empowers you to make informed financial decisions and plan for 
     expenditure_by_income['Amount based on Income Quartile']     = expenditure_by_income['Amount']
     expenditure_by_income = expenditure_by_income.drop('Amount', axis=1)
     
-    expenditure_by_num_family['Amount based Household Size']     = expenditure_by_num_family['Amount']
+    expenditure_by_num_family['Amount based on Household Size']     = expenditure_by_num_family['Amount']
     expenditure_by_num_family = expenditure_by_num_family.drop('Amount', axis=1)
     expenditure_by_num_family = expenditure_by_num_family.drop('Type of Goods and Services', axis=1)
     
@@ -251,13 +251,16 @@ This information empowers you to make informed financial decisions and plan for 
     displayed_df = t_df
     if not show_underlying_data:
         displayed_df = displayed_df.iloc[:,:2]
-    displayed_df = container.experimental_data_editor(data=displayed_df)
+    displayed_df = container.experimental_data_editor(data=displayed_df, use_container_width=True)
     
     container.caption('You can change any of the amounts in the table to reflect your actual spending, and the totals will be updated.')
-    container.caption('For example, if you spent 300 on food last month.')
+    container.caption('For example, if you spent 300 on food last month, double click on the value in *Estimated Amount* and update the value to 300.')
+    container.caption('You can dive into what goes into each category of expenditure in the *Household Expenditure* page')
     
     
     estimated_individual_spend = displayed_df['Estimated Amount'].sum()
+    # existing_age_scale_factor = AGE_GRP_TO_SPENDING_MUL.get(selected_age_grp, 1)
+    # estimated_individual_spend = estimated_individual_spend * existing_age_scale_factor
     
     container.markdown('<br/>', unsafe_allow_html=True)
     container.markdown('<br/>', unsafe_allow_html=True)
@@ -267,12 +270,22 @@ This information empowers you to make informed financial decisions and plan for 
     container.markdown('<br/>', unsafe_allow_html=True)
     container.divider()
     
+    def get_delta_from_prev_spend(idx):
+        get_prev_spending_key = lambda idx: f'prev_spend_value|{idx}'
+        key = get_prev_spending_key(idx=idx)
+        prev_val = st.session_state.get(key,None)
+        st.session_state[key] = estimated_individual_spend
+        return estimated_individual_spend-prev_val if prev_val else 0
+    
     with col0:
         st.subheader('Current')
     with col1:
-        st.metric(label="Estimated Total", value=f"${estimated_individual_spend:.2f}") # show sum of above table
+        delta = get_delta_from_prev_spend(0)
+        st.metric(label="Estimated Total", value=f"${estimated_individual_spend:.2f}", delta=f'{delta:.2f}') # show sum of above table
+            
     with col2:
-        st.metric(label="Estimated Household Total", value=f"${estimated_individual_spend * selected_household_size:.2f}") # show sum of above table
+        delta = get_delta_from_prev_spend(1)
+        st.metric(label="Estimated Household Total", value=f"${estimated_individual_spend * selected_household_size:.2f}", delta=f'{delta:.2f}') # show sum of above table
     st.divider()
 
     
@@ -287,6 +300,7 @@ This information empowers you to make informed financial decisions and plan for 
                 existing_age_scale_factor = AGE_GRP_TO_SPENDING_MUL.get(selected_age_grp, None)
     
     if start_age and end_age and existing_age_scale_factor:
+        idx = 2
         for header, age_delta in (
             ('Five Years Time', 5),
             ('Ten Years Time', 10),
@@ -303,9 +317,10 @@ This information empowers you to make informed financial decisions and plan for 
                     st.subheader(header)
                     st.caption(f'Age group: {new_age_grp}')
                 with col1:
-                    st.metric(label="Estimated Total", value=f"${estimated_spend:.2f}") # show sum of above table
+                    st.metric(label="Estimated Total", value=f"${estimated_individual_spend:.2f}") # show sum of above table
                 with col2:
-                    st.metric(label="Estimated Household Total", value=f"${estimated_spend * selected_household_size:.2f}") # show sum of above table
+                    st.metric(label="Estimated Household Total", value=f"${estimated_individual_spend * selected_household_size:.2f}") # show sum of above table
+                    
                 st.divider()
             
 
