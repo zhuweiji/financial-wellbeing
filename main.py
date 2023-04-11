@@ -317,9 +317,9 @@ This information empowers you to make informed financial decisions and plan for 
                     st.subheader(header)
                     st.caption(f'Age group: {new_age_grp}')
                 with col1:
-                    st.metric(label="Estimated Total", value=f"${estimated_individual_spend:.2f}") # show sum of above table
+                    st.metric(label="Estimated Total", value=f"${estimated_spend:.2f}") # show sum of above table
                 with col2:
-                    st.metric(label="Estimated Household Total", value=f"${estimated_individual_spend * selected_household_size:.2f}") # show sum of above table
+                    st.metric(label="Estimated Household Total", value=f"${estimated_spend * selected_household_size:.2f}") # show sum of above table
                     
                 st.divider()
             
